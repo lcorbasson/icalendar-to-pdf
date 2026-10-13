@@ -2,8 +2,6 @@
 set -eE -o pipefail
 
 # Default settings
-VIRTUALENV_TO_USE="calendrier"
-
 SOURCE_DIR="sources"
 TMP_DIR="tmp"
 DOWNLOADS_DIR="downloads"
