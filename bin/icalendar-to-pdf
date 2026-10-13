@@ -95,17 +95,30 @@ generate_pdfs() {
 		months_since="$(months_since_date "$oldest_date")"
 		months="$((months_since+1+12))"
 
+		# Defaults match rem2pdf's
 		params=(
 			"--media=${PAPER_SIZE:-A4}"
-			"--margin-top=${MARGIN_TOP:-14}" \
-			"--margin-bottom=${MARGIN_BOTTOM:-14}" \
-			"--margin-left=${MARGIN_LEFT:-28}" \
-			"--margin-right=${MARGIN_RIGHT:-28}" \
+			"--margin-top=${MARGIN_TOP:-14}"
+			"--margin-bottom=${MARGIN_BOTTOM:-14}"
+			"--margin-left=${MARGIN_LEFT:-28}"
+			"--margin-right=${MARGIN_RIGHT:-28}"
 			"--title-font=${TITLE_FONT:-Sans}"
 			"--header-font=${HEADER_FONT:-Sans}"
 			"--daynum-font=${DAYNUM_FONT:-Sans Bold Oblique}"
 			"--entry-font=${ENTRY_FONT:-Sans}"
 			"--small-cal-font=${SMALL_CAL_FONT:-Sans}"
+			"--title-size=${TITLE_SIZE:-14}"
+			"--header-size=${HEADER_SIZE:-14}"
+			"--daynum-size=${DAYNUM_SIZE:-14}"
+			"--entry-size=${ENTRY_SIZE:-8}"
+			"--title-color=${TITLE_COLOR:-000000}"
+			"--header-color=${HEADER_COLOR:-000000}"
+			"--daynum-color=${DAYNUM_COLOR:-000000}"
+			"--entry-color=${ENTRY_COLOR:-000000}"
+			"--border-size=${BORDER_SIZE:-4}"
+			"--entry-spacing=${ENTRY_SPACING:-2}"
+			"--line-thickness=${LINE_THICKNESS:-1}"
+			"--line-color=${LINE_COLOR:-000000}"
 		)
 		if [ "$AVOID_OVERFULL" ]; then
 			params+=("--avoid-overfull")
