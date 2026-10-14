@@ -89,7 +89,7 @@ check_tools() {
 
 # Download .ics files
 download_icals() {
-	csvcut -t -c 'Calendrier,URL' "$SOURCE_DIR/$SOURCE_FILEROOT.tsv" | csvformat -T -E \
+	csvcut -t -c 'Calendrier,URL' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv" | csvformat -T -E \
 		| sort -u \
 		| while IFS=$'\t' read calendrier url; do
 		if [ -z "$url" ]; then
@@ -166,9 +166,10 @@ generate_pdfs() {
 
 # Generate data in Remind format from source and downloaded files
 generate_rems() {
-	csvcut -t -c 'Catégorie,Calendrier,Couleur,Gras,Italique' "$SOURCE_DIR/$SOURCE_FILEROOT.tsv" | csvformat -T -E \
+	csvcut -t -c 'Catégorie,Calendrier,Couleur,Gras,Italique' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv" | csvformat -T -E \
 		| while IFS=$'\t' read categorie calendrier couleur gras italique; do
 		tag="${calendrier//[ ,]/_}"
+		tag="${tag:1:47}"
 		if [ "${categorie:0:1}" == "*" ]; then
 			tag='_'
 		fi
@@ -183,7 +184,37 @@ generate_rems() {
 			echo "# /< $SOURCE_DIR/$calendrier.rem"
 			echo
 		fi \
+			| sed -e 's/\( TAG '"$(quoteRe "$tag")"'\) MSG \([^%][^"].*\)/\1 MSG %"\2%"/' \
 			> "$TMP_DIR/$calendrier.ics.rem"
+
+		locations_replacements_file="$SOURCE_DIR/$SOURCE_FILEROOT.locations.tsv"
+		if [ -e "$locations_replacements_file" ]; then
+			l=0
+			cp "$TMP_DIR/$calendrier.ics.rem" "$TMP_DIR/$calendrier.ics.$l.rem"
+			sed -e '1d' "$locations_replacements_file" | nl | while IFS=$'\t' read l original nom adresse metrotrain bustram; do
+				l="${l// /}"
+				where="$nom"
+				if [ -n "$adresse" ]; then
+					where+="%_$adresse"
+				fi
+				if [ "${SHOW_METROTRAIN:-true}" == "true" ] && [ -n "$metrotrain" ]; then
+					where+="%_<small>🚇 $metrotrain</small>"
+				fi
+				if [ "${SHOW_BUSTRAM:-true}" == "true" ] && [ -n "$bustram" ]; then
+					where+="%_<small>🚌 $bustram</small>"
+				fi
+				quoted_where=""
+				if [ -n "$where" ]; then
+					quoted_where=" at $(quoteSubst "$where")"
+				fi
+				sed \
+					-e 's/\( TAG '"$(quoteRe "$tag")"'\) MSG %"\(.*\) at '"$(quoteRe "$original")"'[^%]*%"\(.*\)/\1 MSG %"\2'"$quoted_where"'%"\3/' \
+					"$TMP_DIR/$calendrier.ics.$(($l-1)).rem" \
+					| tee "$TMP_DIR/$calendrier.ics.$l.rem" \
+					> "$TMP_DIR/$calendrier.ics.rem"
+			done
+		fi
+
 		for color_mode in "${COLOR_MODE[@]}"; do
 			pango_before=""
 			if [ -n "$couleur" ]; then
@@ -220,9 +251,7 @@ generate_rems() {
 			else
 				sed \
 					-e 's/ TAG '"$(quoteRe "$tag")"' MSG %"\(.*\) at \(.*\)%".*/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'%_📍 \2/' \
-					-e 's/ TAG '"$(quoteRe "$tag")"' MSG %"\(.*\)%".*/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'/' \
-					-e 's/ TAG '"$(quoteRe "$tag")"' MSG \(.*\) at \(.*\)/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'%_📍 \2/' \
-					-e 's/ TAG '"$(quoteRe "$tag")"' MSG \(.*\)/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'/'
+					-e 's/ TAG '"$(quoteRe "$tag")"' MSG %"\(.*\)%".*/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'/'
 			fi \
 				< "$TMP_DIR/$calendrier.ics.rem" \
 				> "$TMP_DIR/$calendrier.ics.pango-$color_mode.rem"
@@ -230,7 +259,7 @@ generate_rems() {
 	done
 
 	# Concatenate all
-	( csvcut -t -c 'Catégorie' "$SOURCE_DIR/$SOURCE_FILEROOT.tsv"; echo '' ) | csvformat -T -E | sed -e '/^*/d' | sort -u \
+	( csvcut -t -c 'Catégorie' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"; echo '' ) | csvformat -T -E | sed -e '/^*/d' | sort -u \
 		| while IFS=$'\t' read categorie; do
 		for color_mode in "${COLOR_MODE[@]}"; do
 			if [ -z "$categorie" ]; then
@@ -245,9 +274,9 @@ generate_rems() {
 				echo
 
 				if [ -n "$categorie" ]; then
-					csvgrep -t -c 'Catégorie' -r '^('"$(quoteRe "$categorie")"'|\*.*)$' "$SOURCE_DIR/$SOURCE_FILEROOT.tsv"
+					csvgrep -t -c 'Catégorie' -r '^('"$(quoteRe "$categorie")"'|\*.*)$' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"
 				else
-					csvformat -t "$SOURCE_DIR/$SOURCE_FILEROOT.tsv"
+					csvformat -t "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"
 				fi \
 					| csvcut -c 'Calendrier' | csvformat -T -E \
 					| while IFS=$'\t' read calendrier; do
@@ -296,9 +325,9 @@ months_since_date() {
 
 check_tools
 
-ls "$SOURCE_DIR"/*.tsv | while read source; do
+ls "$SOURCE_DIR"/*.calendars.tsv | while read source; do
 	SOURCE_FILEROOT="${source##*/}"
-	SOURCE_FILEROOT="${SOURCE_FILEROOT%.tsv}"
+	SOURCE_FILEROOT="${SOURCE_FILEROOT%.calendars.tsv}"
 	OUTPUT_FILEROOT="$SOURCE_FILEROOT"
 
 	if ! elementIn "--no-download" "$@"; then
