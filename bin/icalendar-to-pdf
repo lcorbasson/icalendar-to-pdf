@@ -155,7 +155,7 @@ generate_pdfs() {
 				| tee "$reminders_file.json" \
 				| rem2pdf "${exec_params[@]}" \
 				> "$reminders_file.$paper_orientation.pdf.tmp"
-			qpdf --empty --pages "$reminders_file.$paper_orientation.pdf.tmp" r14-r1 -- "$reminders_file.$paper_orientation.pdf"
+			qpdf --empty --pages "$reminders_file.$paper_orientation.pdf.tmp" r15-r1 -- "$reminders_file.$paper_orientation.pdf"
 			rm "$reminders_file.$paper_orientation.pdf.tmp"
 			mv "$reminders_file.$paper_orientation.pdf" "$OUTPUT_DIR/"
 		done
