@@ -173,7 +173,7 @@ generate_rems() {
 		fi
 		if [ -e "$DOWNLOADS_DIR/$calendrier.ics" ]; then
 			echo "# < $DOWNLOADS_DIR/$calendrier.ics"
-			ics2rem --no-locations -t "$tag" "$DOWNLOADS_DIR/$calendrier.ics"
+			ics2rem -t "$tag" "$DOWNLOADS_DIR/$calendrier.ics"
 			echo "# /< $DOWNLOADS_DIR/$calendrier.ics"
 			echo
 		else
@@ -218,7 +218,9 @@ generate_rems() {
 					-e 's/^REM \(.*\)\( UNTIL .*\|\) TAG '"$(quoteRe "$tag")"' MSG \(.*\)/# \3\nREM \1\2 '"$(quoteSubst 'SATISFY [($Tw != 6) && ($Tw != 0) && (! isomitted($T))] SPECIAL SHADE [SchoolHolidayShade]')"'/'
 			else
 				sed \
+					-e 's/ TAG '"$(quoteRe "$tag")"' MSG %"\(.*\) at \(.*\)%".*/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'%_📍 \2/' \
 					-e 's/ TAG '"$(quoteRe "$tag")"' MSG %"\(.*\)%".*/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'/' \
+					-e 's/ TAG '"$(quoteRe "$tag")"' MSG \(.*\) at \(.*\)/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'%_📍 \2/' \
 					-e 's/ TAG '"$(quoteRe "$tag")"' MSG \(.*\)/ SPECIAL PANGO '"$(quoteSubst "$timecode$pango_before")"'\1'"$(quoteSubst "$pango_after")"'/'
 			fi \
 				< "$TMP_DIR/$calendrier.ics.rem" \
