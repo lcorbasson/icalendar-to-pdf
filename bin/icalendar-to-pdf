@@ -90,6 +90,7 @@ check_tools() {
 # Download .ics files
 download_icals() {
 	csvcut -t -c 'Calendrier,URL' "$SOURCE_DIR/$SOURCE_FILEROOT.tsv" | csvformat -T -E \
+		| sort -u \
 		| while IFS=$'\t' read calendrier url; do
 		if [ -z "$url" ]; then
 			rm "$DOWNLOADS_DIR/$calendrier.ics" || true
