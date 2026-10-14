@@ -112,7 +112,6 @@ generate_pdfs() {
 			"--title-color=${TITLE_COLOR:-000000}"
 			"--header-color=${HEADER_COLOR:-000000}"
 			"--daynum-color=${DAYNUM_COLOR:-000000}"
-			"--entry-color=${ENTRY_COLOR:-000000}"
 			"--border-size=${BORDER_SIZE:-4}"
 			"--entry-spacing=${ENTRY_SPACING:-2}"
 			"--line-thickness=${LINE_THICKNESS:-1}"
