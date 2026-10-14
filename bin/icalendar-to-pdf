@@ -20,18 +20,36 @@ mkdir -p "$SOURCE_DIR" "$TMP_DIR" "$DOWNLOADS_DIR" "$OUTPUT_DIR"
 
 ##
 # Utility functions
+##
+
+# Check if an element is in an array
+# Source - https://stackoverflow.com/a/8574392
+# Posted by patrik, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-10-14, License - CC BY-SA 4.0
+elementIn() {
+	local e match="$1"
+	shift
+	for e; do
+		if [[ "$e" == "$match" ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Quote `sed` regular expressions for further use
 # Source - https://stackoverflow.com/a/29613573
 # Posted by mklement0, modified by community. See post 'Timeline' for change history
 # Retrieved 2026-10-01, License - CC BY-SA 4.0
-##
-
-# Quote `sed` regular expressions for further use
 quoteRe() {
 	[ $# -ne 1 ] && echo "Usage: $0 REGULAR_EXPRESSION"
 	echo "$1" | sed -e 's/[^^]/[&]/g; s/\^/\\^/g; $!a\'$'\n''\\n' | tr -d '\n'
 }
 
 # Quote `sed` substitutions for further use
+# Source - https://stackoverflow.com/a/29613573
+# Posted by mklement0, modified by community. See post 'Timeline' for change history
+# Retrieved 2026-10-01, License - CC BY-SA 4.0
 quoteSubst() {
 	[ $# -ne 1 ] && echo "Usage: $0 SUBSTITUTION_STRING"
 	IFS= read -d '' -r < <(echo "$1" | sed -e ':a' -e '$!{N;ba' -e '}' -e 's/[&/\]/\\&/g; s/\n/\\&/g')
@@ -280,12 +298,12 @@ ls "$SOURCE_DIR"/*.tsv | while read source; do
 	SOURCE_FILEROOT="${SOURCE_FILEROOT%.tsv}"
 	OUTPUT_FILEROOT="$SOURCE_FILEROOT"
 
-	download_icals
+	if ! elementIn "--no-download" "$@"; then
+		download_icals
+	fi
 
-	generate_rems | generate_pdfs
+	if ! elementIn "--no-generate" "$@"; then
+		generate_rems | generate_pdfs
+	fi
 done
-
-if [ -n "$VIRTUAL_ENV" ]; then
-	deactivate || true
-fi
 
