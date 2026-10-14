@@ -114,7 +114,6 @@ generate_pdfs() {
 
 		# Defaults match rem2pdf's
 		params=(
-			"--media=${PAPER_SIZE:-A4}"
 			"--margin-top=${MARGIN_TOP:-14}"
 			"--margin-bottom=${MARGIN_BOTTOM:-14}"
 			"--margin-left=${MARGIN_LEFT:-28}"
@@ -136,29 +135,42 @@ generate_pdfs() {
 			"--line-thickness=${LINE_THICKNESS:-1}"
 			"--line-color=${LINE_COLOR:-000000}"
 		)
-		if [ "$AVOID_OVERFULL" ]; then
+		if [ "${AVOID_OVERFULL:-false}" == "true" ]; then
 			params+=("--avoid-overfull")
 		fi
+		if [ "${WRAP_CALENDAR:-false}" == "true" ]; then
+			params+=("--wrap")
+		fi
 
-		for paper_orientation in "${PAPER_ORIENTATION[@]}"; do
-			exec_params=("${params[@]}")
-			case "$paper_orientation" in
-				"landscape")
-					exec_params+=("--$paper_orientation")
-					;;
-				"portrait")
-					;;
-				*)
-					echo "Unknown paper orientation: '$paper_orientation'. Assuming 'portrait'." >&2
-					;;
-			esac
-			remind -b1 -m -ppp"$months" "$reminders_file" "$oldest_date" \
-				| tee "$reminders_file.json" \
-				| rem2pdf "${exec_params[@]}" \
-				> "$reminders_file.$paper_orientation.pdf.tmp"
-			qpdf --empty --pages "$reminders_file.$paper_orientation.pdf.tmp" r15-r1 -- "$reminders_file.$paper_orientation.pdf"
-			rm "$reminders_file.$paper_orientation.pdf.tmp"
-			mv "$reminders_file.$paper_orientation.pdf" "$OUTPUT_DIR/"
+		for paper_size in "${PAPER_SIZE[@]}"; do
+			for paper_orientation in "${PAPER_ORIENTATION[@]:-portrait}"; do
+				exec_params=("${params[@]}")
+				if [ -z "$paper_size" ]; then
+					if [ -z "$PAPER_WIDTH" ] || [ -z "$PAPER_HEIGHT" ]; then
+						paper_size="A4"
+					fi
+				fi
+				if [ -n "$paper_size" ]; then
+					exec_params+=("--media=$paper_size")
+				fi
+				case "$paper_orientation" in
+					"landscape")
+						exec_params+=("--$paper_orientation")
+						;;
+					"portrait")
+						;;
+					*)
+						echo "Unknown paper orientation: '$paper_orientation'. Assuming 'portrait'." >&2
+						;;
+				esac
+				remind -b1 -m -ppp"$months" "$reminders_file" "$oldest_date" \
+					| tee "$reminders_file.json" \
+					| rem2pdf "${exec_params[@]}" \
+					> "$reminders_file.$paper_size.$paper_orientation.pdf.tmp"
+				qpdf --empty --pages "$reminders_file.$paper_size.$paper_orientation.pdf.tmp" r15-r1 -- "$reminders_file.$paper_size.$paper_orientation.pdf"
+				rm "$reminders_file.$paper_size.$paper_orientation.pdf.tmp"
+				mv "$reminders_file.$paper_size.$paper_orientation.pdf" "$OUTPUT_DIR/"
+			done
 		done
 	done
 }
