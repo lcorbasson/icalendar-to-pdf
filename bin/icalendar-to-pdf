@@ -77,6 +77,8 @@ check_tools() {
 		csvformat \
 		csvgrep \
 		ics2rem \
+		pdfposter \
+		pdftl \
 		qpdf \
 		rem2pdf \
 		remind \
@@ -174,6 +176,13 @@ generate_pdfs() {
 				if [ "$paper_size" != "A4" ]; then
 					pdfposter -p "$paper_size" -m "A4" \
 						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size.$paper_orientation.pdf" \
+						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf"
+					pdftl \
+						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf" \
+						delete_blank "threshold=0" output \
+						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf.new"
+					mv \
+						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf.new" \
 						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf"
 				fi
 			done
