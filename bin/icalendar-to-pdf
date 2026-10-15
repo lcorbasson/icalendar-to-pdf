@@ -72,6 +72,7 @@ check_tools() {
 		workon "$VIRTUALENV_TO_USE"
 	fi
 	for tool in \
+		awk \
 		csvcut \
 		csvformat \
 		csvgrep \
@@ -82,7 +83,7 @@ check_tools() {
 		sed \
 		wget \
 	; do
-		which "$tool"
+		which "$tool" > /dev/null
 	done
 }
 
@@ -90,7 +91,7 @@ check_tools() {
 # Download .ics files
 download_icals() {
 	csvcut -t -c 'Calendrier,URL' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv" | csvformat -T -E \
-		| sort -u \
+		| awk '!seen[$0]++' \
 		| while IFS=$'\t' read calendrier url; do
 		if [ -z "$url" ]; then
 			rm "$DOWNLOADS_DIR/$calendrier.ics" || true
@@ -179,6 +180,7 @@ generate_pdfs() {
 # Generate data in Remind format from source and downloaded files
 generate_rems() {
 	csvcut -t -c 'Catégorie,Calendrier,Couleur,Gras,Italique' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv" | csvformat -T -E \
+		| awk '!seen[$0]++' \
 		| while IFS=$'\t' read categorie calendrier couleur gras italique; do
 		tag="${calendrier//[ ,]/_}"
 		tag="${tag:0:47}"
@@ -271,7 +273,8 @@ generate_rems() {
 	done
 
 	# Concatenate all
-	( csvcut -t -c 'Catégorie' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"; echo '' ) | csvformat -T -E | sed -e '/^*/d' | sort -u \
+	( csvcut -t -c 'Catégorie' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"; echo '' ) | csvformat -T -E | sed -e '/^*/d' \
+		| awk '!seen[$0]++' \
 		| while IFS=$'\t' read categorie; do
 		for color_mode in "${COLOR_MODE[@]}"; do
 			if [ -z "$categorie" ]; then
@@ -291,6 +294,7 @@ generate_rems() {
 					csvformat -t "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"
 				fi \
 					| csvcut -c 'Calendrier' | csvformat -T -E \
+					| awk '!seen[$0]++' \
 					| while IFS=$'\t' read calendrier; do
 					cat "$TMP_DIR/$calendrier.ics.pango-$color_mode.rem"
 				done
@@ -307,6 +311,7 @@ get_oldest_date_in_rem() {
 		sed -n \
 			-E 's/^REM\s+([A-Za-z]{3,10}\s+[0-9]{1,2}\s+[0-9]{4}|[0-9]{1,2}\s+[A-Za-z]{3,10}\s+[0-9]{4})(\s+.*|$)/\1/p' \
 			< "$rem_file" \
+			| awk '!seen[$0]++' \
 			| while read date; do
 			date -I -d "$date"
 		done
