@@ -80,6 +80,7 @@ check_tools() {
 		pdfposter \
 		pdftl \
 		qpdf \
+		rem2html \
 		rem2pdf \
 		remind \
 		sed \
@@ -105,7 +106,7 @@ download_icals() {
 
 
 # Make PDF files (results)
-generate_pdfs() {
+generate_outputs() {
 	while read reminders_file; do
 		oldest_date="$(get_oldest_date_in_rem "$reminders_file")"
 		oldest_date="${oldest_date%-*}-01"
@@ -145,6 +146,8 @@ generate_pdfs() {
 			params+=("--wrap")
 		fi
 
+		remind -b1 -m -ppp"$months" "$reminders_file" "$oldest_date" \
+			> "$reminders_file.json"
 		for paper_size in "${PAPER_SIZE[@]}"; do
 			for paper_orientation in "${PAPER_ORIENTATION[@]:-portrait}"; do
 				exec_params=("${params[@]}")
@@ -166,8 +169,7 @@ generate_pdfs() {
 						echo "Unknown paper orientation: '$paper_orientation'. Assuming 'portrait'." >&2
 						;;
 				esac
-				remind -b1 -m -ppp"$months" "$reminders_file" "$oldest_date" \
-					| tee "$reminders_file.json" \
+				cat "$reminders_file.json" \
 					| rem2pdf "${exec_params[@]}" \
 					> "$reminders_file.$paper_size.$paper_orientation.pdf.tmp"
 				qpdf --empty --pages "$reminders_file.$paper_size.$paper_orientation.pdf.tmp" r15-r1 -- "$reminders_file.$paper_size.$paper_orientation.pdf"
@@ -185,6 +187,18 @@ generate_pdfs() {
 						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf.new" \
 						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf"
 				fi
+			done
+		done
+
+		year="$(date +%Y)"
+		for y in "$year" "$(($year+1))"; do
+			remind -b1 -m -ppp"12" "$reminders_file" "$y-01-01" \
+				| rem2html --yaag \
+				> "$OUTPUT_DIR/${reminders_file##*/}.$y.yaag.html"
+			for m in $(seq -w 1 12); do
+				remind -b1 -m -ppp"1" "$reminders_file" "$y-$m-01" \
+					| rem2html \
+					> "$OUTPUT_DIR/${reminders_file##*/}.$y-$m.html"
 			done
 		done
 	done
@@ -290,11 +304,11 @@ generate_rems() {
 	( csvcut -t -c 'Catégorie' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"; echo '' ) | csvformat -T -E | sed -e '/^*/d' \
 		| awk '!seen[$0]++' \
 		| while IFS=$'\t' read categorie; do
-		for color_mode in "${COLOR_MODE[@]}"; do
+		for color_mode in "${COLOR_MODE[@]/#/.pango-}" ""; do
 			if [ -z "$categorie" ]; then
-				reminders_file="$TMP_DIR/$OUTPUT_FILEROOT.pango-$color_mode.rem"
+				reminders_file="$TMP_DIR/$OUTPUT_FILEROOT$color_mode.rem"
 			else
-				reminders_file="$TMP_DIR/$OUTPUT_FILEROOT.$categorie.pango-$color_mode.rem"
+				reminders_file="$TMP_DIR/$OUTPUT_FILEROOT.$categorie$color_mode.rem"
 			fi
 			(
 				echo "# < $SOURCE_DIR/$SOURCE_FILEROOT.rem"
@@ -310,7 +324,7 @@ generate_rems() {
 					| csvcut -c 'Calendrier' | csvformat -T -E \
 					| awk '!seen[$0]++' \
 					| while IFS=$'\t' read calendrier; do
-					cat "$TMP_DIR/$calendrier.ics.pango-$color_mode.rem"
+					cat "$TMP_DIR/$calendrier.ics$color_mode.rem"
 				done
 			) > "$reminders_file"
 			echo "$reminders_file"
@@ -366,7 +380,7 @@ ls "$SOURCE_DIR"/*.calendars.tsv | while read source; do
 	fi
 
 	if ! elementIn "--no-generate" "$@"; then
-		generate_rems | generate_pdfs
+		generate_rems | generate_outputs
 	fi
 done
 
