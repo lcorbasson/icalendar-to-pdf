@@ -286,7 +286,7 @@ generate_rems() {
 				echo
 
 				if [ -n "$categorie" ]; then
-					csvgrep -t -c 'Catégorie' -r '^('"$(quoteRe "$categorie")"'|\*.*)$' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"
+					csvgrep -t -c 'Catégorie' -r '^('"$(quoteRe "$categorie")"'|\*.*|\+.*)$' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"
 				else
 					csvformat -t "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv"
 				fi \
