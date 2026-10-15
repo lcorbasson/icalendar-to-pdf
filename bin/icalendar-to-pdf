@@ -171,6 +171,11 @@ generate_pdfs() {
 				qpdf --empty --pages "$reminders_file.$paper_size.$paper_orientation.pdf.tmp" r15-r1 -- "$reminders_file.$paper_size.$paper_orientation.pdf"
 				rm "$reminders_file.$paper_size.$paper_orientation.pdf.tmp"
 				mv "$reminders_file.$paper_size.$paper_orientation.pdf" "$OUTPUT_DIR/"
+				if [ "$paper_size" != "A4" ]; then
+					pdfposter -p "$paper_size" -m "A4" \
+						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size.$paper_orientation.pdf" \
+						"$OUTPUT_DIR/${reminders_file##*/}.$paper_size-on-A4.$paper_orientation.pdf"
+				fi
 			done
 		done
 	done
