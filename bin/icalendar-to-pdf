@@ -181,7 +181,7 @@ generate_rems() {
 	csvcut -t -c 'Catégorie,Calendrier,Couleur,Gras,Italique' "$SOURCE_DIR/$SOURCE_FILEROOT.calendars.tsv" | csvformat -T -E \
 		| while IFS=$'\t' read categorie calendrier couleur gras italique; do
 		tag="${calendrier//[ ,]/_}"
-		tag="${tag:1:47}"
+		tag="${tag:0:47}"
 		if [ "${categorie:0:1}" == "*" ]; then
 			tag='_'
 		fi
